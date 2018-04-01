@@ -1,3 +1,4 @@
 *.swp
 cmd/remux_example/remux_example
+cmd/alert_server/nvr
 videostreamer

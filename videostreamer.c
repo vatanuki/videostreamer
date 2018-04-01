@@ -49,7 +49,7 @@ vs_open_input(const char * const input_format_name,
 		printf("%s\n", strerror(errno));
 		return NULL;
 	}
-
+	input->format_ctx = NULL;
 
 	AVInputFormat * const input_format = av_find_input_format(input_format_name);
 	if (!input_format) {
@@ -58,12 +58,34 @@ vs_open_input(const char * const input_format_name,
 		return NULL;
 	}
 
-	if (avformat_open_input(&input->format_ctx, input_url, input_format,
-				NULL) != 0) {
-		printf("unable to open input\n");
+	AVDictionary *opts = NULL;
+	if (av_dict_set(&opts, "rtsp_transport", "tcp", 0) < 0) {
+		printf("error set rtsp_transport\n");
 		vs_destroy_input(input);
+		av_dict_free(&opts);
 		return NULL;
 	}
+
+#if 1
+	if (av_dict_set(&opts, "stimeout", "10000000", 0) < 0) {
+#else
+	if (av_dict_set(&opts, "timeout", "10000000", 0) < 0) {
+#endif
+		printf("error set timeout\n");
+		vs_destroy_input(input);
+		av_dict_free(&opts);
+		return NULL;
+	}
+
+	if (avformat_open_input(&input->format_ctx, input_url, input_format,
+				&opts) != 0) {
+		printf("unable to open input\n");
+		vs_destroy_input(input);
+		av_dict_free(&opts);
+		return NULL;
+	}
+
+	av_dict_free(&opts);
 
 	if (avformat_find_stream_info(input->format_ctx, NULL) < 0) {
 		printf("failed to find stream info\n");
@@ -71,11 +93,11 @@ vs_open_input(const char * const input_format_name,
 		return NULL;
 	}
 
-
 	if (verbose) {
-		av_dump_format(input->format_ctx, 0, input_url, 0);
+		for (unsigned int i = 0; i < input->format_ctx->nb_streams; i++) {
+			av_dump_format(input->format_ctx, i, input_url, 0);
+		}
 	}
-
 
 	// Find the first video stream.
 
@@ -100,7 +122,6 @@ vs_open_input(const char * const input_format_name,
 		vs_destroy_input(input);
 		return NULL;
 	}
-
 
 	return input;
 }
@@ -137,7 +158,7 @@ vs_open_output(const char * const output_format_name,
 		printf("%s\n", strerror(errno));
 		return NULL;
 	}
-
+	output->format_ctx = NULL;
 
 	AVOutputFormat * const output_format = av_guess_format(output_format_name,
 			NULL, NULL);
@@ -306,7 +327,7 @@ vs_read_packet(const struct VSInput * input, AVPacket * const pkt,
 
 
 	if (verbose) {
-		__vs_log_packet(input->format_ctx, pkt, "in");
+		//__vs_log_packet(input->format_ctx, pkt, "in");
 	}
 
 	return 1;
@@ -439,7 +460,7 @@ vs_write_packet(const struct VSInput * const input,
 
 
 	if (verbose) {
-		__vs_log_packet(output->format_ctx, pkt, "out");
+		//__vs_log_packet(output->format_ctx, pkt, "out");
 	}
 
 
