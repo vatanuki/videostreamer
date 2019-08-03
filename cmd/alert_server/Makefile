@@ -3,7 +3,7 @@ OBJS = nvr.o tools.o str.o sock.o conf.o clients.o db_mysql.o streams.o \
 	../../videostreamer.o
 
 CC = gcc
-CFLAGS = -g -Wall -Wno-unused-function -I../../
+CFLAGS = -g -Wall -Wno-unused-function -I../../ $(DEFS)
 LDFLAGS = -lavformat -lavdevice -lavcodec -lavutil -lpthread -lmysqlclient_r
 
 HEADERS = log.h tools.h str.h sock.h conf.h defs.h clients.h structs.h \

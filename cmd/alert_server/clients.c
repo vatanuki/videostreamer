@@ -67,6 +67,7 @@ void accept_clients(void){
 			client->sd = cl_sd;
 			client->ip = cl_addr.sin_addr.s_addr;
 			strcpy(client->ip_str, cl_ip);
+			strcpy(client->camera_ip_str, cl_ip);
 			client->port = cl_port;
 
 			//add client to clients list
@@ -93,9 +94,6 @@ void free_client(st_client **client){
 
 		if((*client)->pk_data)
 			free((*client)->pk_data);
-
-		if((*client)->alert_data.json)
-			free((*client)->alert_data.json);
 
 		free(*client);
 		*client = NULL;
@@ -142,16 +140,13 @@ void *client_thread(void* av){
 	((char*)cl->pk_data)[cl->alert_header.data_size] = 0;
 	trim_end((char*)cl->pk_data);
 
-	_LOG_DBG(CL_LOG_STR"alert: (0x%08x 0x%08x 0x%08x 0x%08x): (%u) %s", CL_LOG(cl),
+	_LOG_INF(CL_LOG_STR"alert: (0x%08x 0x%08x 0x%08x 0x%08x): (%u) %s", CL_LOG(cl),
 		cl->alert_header.ui1, cl->alert_header.ui2, cl->alert_header.ui3, cl->alert_header.ui4,
 		cl->alert_header.data_size, (char*)cl->pk_data);
 
-	//TODO: json parser
-	if(!client_alert_data(cl)){
-//	if(strstr((char*)cl->pk_data, "\"Event\" : \"MotionDetect\""))
-	if(strstr((char*)cl->pk_data, "\"Type\" : \"Alarm\""))
+	//1: Type=Alarm, 2: Event=MotionDetect
+	if(client_alert_data(cl) == 2)
 		process_stream(cl);
-	}
 
 	client_dbsync(cl);
 
@@ -173,12 +168,6 @@ int client_dbsync(st_client *cl){
 
 	_LOG_DBG(CL_LOG_STR"add alert to db", CL_LOG(cl));
 
-
-	_LOG_DBG(CL_LOG_STR"alert: (0x%08x 0x%08x 0x%08x 0x%08x): (%u) %s", CL_LOG(cl),
-		cl->alert_header.ui1, cl->alert_header.ui2, cl->alert_header.ui3, cl->alert_header.ui4,
-		cl->alert_header.data_size, (char*)cl->pk_data);
-
-
 	snprintf(query, sizeof(query), "INSERT INTO alerts SET ip=\"%s\", raw=\"%s\"", cl->ip_str, (raw = straddslashesdup((char*)cl->pk_data, '"')));
 	pthread_mutex_lock(&g.db.mysql_mutex);
 	g.db.query = query;
@@ -193,21 +182,15 @@ int client_dbsync(st_client *cl){
 }
 
 int client_alert_data(st_client *cl){
-	int i, cnt;
-	char *name, *value;
+	int r = 0, i, cnt;
+	char n, v, *name, *value, *data = (char*)cl->pk_data;
+	struct in_addr addr;
 	jsmn_parser p;
 	jsmntok_t t[JSON_ALERT_MAX_TOKENS];
 
-	s_free(&cl->alert_data.json);
-	memset(&cl->alert_data, 0, sizeof(st_alert_data));
-	if(!(cl->alert_data.json = strdup(cl->pk_data))){
-		_LOG_ERR(CL_LOG_STR"strdup: %u bytes | %m", CL_LOG(cl), cl->alert_header.data_size);
-		return -1;
-	}
-
 	jsmn_init(&p);
-	if((cnt=jsmn_parse(&p, cl->alert_data.json, strlen(cl->alert_data.json), t, JSON_ALERT_MAX_TOKENS)) <= 0 || t[0].type != JSMN_OBJECT || !t[0].size){
-		_LOG_ERR(CL_LOG_STR"jsmn_parse: %s", CL_LOG(cl), cl->alert_data.json);
+	if((cnt=jsmn_parse(&p, data, cl->alert_header.data_size, t, JSON_ALERT_MAX_TOKENS)) <= 0 || t[0].type != JSMN_OBJECT || !t[0].size){
+		_LOG_ERR(CL_LOG_STR"jsmn_parse: %s", CL_LOG(cl), data);
 		return -1;
 	}
 
@@ -215,25 +198,32 @@ int client_alert_data(st_client *cl){
 		if(t[i].type != JSMN_STRING || t[i].size != 1 || t[i+1].size)
 			continue;
 
-		name = cl->alert_data.json + t[i].start;
-		value = cl->alert_data.json + t[i+1].start;
-		cl->alert_data.json[t[i].end] = cl->alert_data.json[t[i+1].end] = '\0';
+		n = data[t[i].end];
+		v = data[t[i+1].end];
+		data[t[i].end] = data[t[i+1].end] = '\0';
+
+		name = data + t[i].start;
+		value = data + t[i+1].start;
 
 		_LOG_DBG(CL_LOG_STR"json: %s = %s", CL_LOG(cl), name, value);
 
-		if(!strcmp(name, "Address"))
-			cl->alert_data.address = value;
-		else if(!strcmp(name, "SerialID"))
-			cl->alert_data.serial = value;
-		else if(!strcmp(name, "Status"))
-			cl->alert_data.status = value;
-		else if(!strcmp(name, "Event"))
-			cl->alert_data.event = value;
-		else if(!strcmp(name, "Type"))
-			cl->alert_data.type = value;
+		if(!strcmp(name, "Address")){
+			if((addr.s_addr = strtol(value, NULL, 16)))
+				strcpy(cl->camera_ip_str, inet_ntoa(addr));
 
+		}else if(!strcmp(name, "Type")){
+			if(!strcmp(value, "Alarm") && !r)
+				r = 1;
+
+		}else if(!strcmp(name, "Event")){
+			if(!strcmp(value, "MotionDetect"))
+				r = 2;
+		}
+
+		data[t[i].end] = n;
+		data[t[i+1].end] = v;
 		i++;
 	}
 
-	return 0;
+	return r;
 }

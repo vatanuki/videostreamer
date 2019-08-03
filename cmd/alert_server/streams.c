@@ -24,7 +24,7 @@ extern st_g g;
 void process_stream(st_client *cl){
 	st_stream *stream;
 
-	_LOG_DBG("process stream for client: %s", cl->ip_str);
+	_LOG_DBG("process stream for camera: %s", cl->camera_ip_str);
 
 	//lock streams
 	pthread_mutex_lock(&g.streams_mutex);
@@ -42,7 +42,7 @@ void process_stream(st_client *cl){
 		if((stream=malloc(sizeof(st_stream)))){
 			memset(stream, 0, sizeof(st_stream));
 			stream->ip = cl->ip;
-			strcpy(stream->ip_str, cl->ip_str);
+			strcpy(stream->ip_str, cl->camera_ip_str);
 			stream->updated = time(NULL);
 
 			//add stream to streams list
@@ -110,11 +110,15 @@ void *stream_thread(void* av){
 	struct tm *lt;
 	AVPacket pkt;
 
+#ifndef _LOG_DEBUG
+	verbose = 0;
+#endif
+
 	_LOG_DBG(ST_LOG_STR"start stream thread", ST_LOG(st));
 
 	dst = st->dst;
 	len = sizeof(st->dst);
-	snprintf(dst, len, "%s%s.conf", g.conf.configs_path ? g.conf.configs_path : "", st->ip_str);
+	snprintf(dst, len, g.conf.configs_path ? "%s/%s.conf" : "%s%s.conf", g.conf.configs_path ? g.conf.configs_path : "", st->ip_str);
 	conf_init_stream(dst, &st->conf);
 
 	if(!st->conf.save_path || !st->conf.rtsp_url){
@@ -187,7 +191,7 @@ void *stream_thread(void* av){
 	}while(t < st->conf.min_run_time);
 
 st_bye:
-	_LOG_DBG(ST_LOG_STR"exit stream thread", ST_LOG(st));
+	_LOG_INF(ST_LOG_STR"exit stream thread", ST_LOG(st));
 
 	//remove from streams list
 	pthread_mutex_lock(&g.streams_mutex);

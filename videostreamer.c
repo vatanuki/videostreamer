@@ -24,6 +24,9 @@ void
 vs_setup(void)
 {
 	// Set up library.
+#ifndef _LOG_DEBUG
+	av_log_set_level(AV_LOG_QUIET);
+#endif
 
 #if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(58, 9, 100)
 	// Register muxers, demuxers, and protocols.

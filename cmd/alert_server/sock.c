@@ -1,5 +1,6 @@
 #include <memory.h>
 #include <stdio.h>
+#include "defs.h"
 #include <errno.h>
 #include <netdb.h>
 #include <unistd.h>
