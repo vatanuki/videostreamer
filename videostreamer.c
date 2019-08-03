@@ -77,9 +77,10 @@ vs_open_input(const char * const input_format_name,
 		return NULL;
 	}
 
-	if (avformat_open_input(&input->format_ctx, input_url, input_format,
-				&opts) != 0) {
-		printf("unable to open input\n");
+	int const open_status = avformat_open_input(&input->format_ctx, input_url,
+			input_format, &opts);
+	if (open_status != 0) {
+		printf("unable to open input: %s\n", av_err2str(open_status));
 		vs_destroy_input(input);
 		av_dict_free(&opts);
 		return NULL;
@@ -134,8 +135,7 @@ vs_destroy_input(struct VSInput * const input)
 	}
 
 	if (input->format_ctx) {
-		avformat_close_input(&input->format_ctx);
-		avformat_free_context(input->format_ctx);
+		avformat_close_input(&input->format_ctx);		
 	}
 
 	free(input);
@@ -474,10 +474,7 @@ vs_write_packet(const struct VSInput * const input,
 	// Using av_write_frame() skips buffering.
 	const int write_res = av_write_frame(output->format_ctx, pkt);
 	if (write_res != 0) {
-		char error_buf[256];
-		memset(error_buf, 0, 256);
-		av_strerror(write_res, error_buf, 256);
-		printf("unable to write frame: %s\n", error_buf);
+		printf("unable to write frame: %s\n", av_err2str(write_res));
 		return -1;
 	}
 
