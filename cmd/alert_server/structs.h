@@ -31,6 +31,7 @@ typedef struct _st_client{
 	//protocol
 	st_alert_header alert_header;
 	void *pk_data;
+	unsigned int camera_ip;
 	char camera_ip_str[INET_ADDR_STR_LEN];
 
 	void *prev;

@@ -67,8 +67,11 @@ void accept_clients(void){
 			client->sd = cl_sd;
 			client->ip = cl_addr.sin_addr.s_addr;
 			strcpy(client->ip_str, cl_ip);
-			strcpy(client->camera_ip_str, cl_ip);
 			client->port = cl_port;
+
+			//default camera ip
+			client->camera_ip = client->ip;
+			strcpy(client->camera_ip_str, client->ip_str);
 
 			//add client to clients list
 			client_insert_first(client);
@@ -212,8 +215,10 @@ int client_alert_data(st_client *cl){
 		_LOG_DBG(CL_LOG_STR"json: %s = %s", CL_LOG(cl), name, value);
 
 		if(!strcmp(name, "Address")){
-			if((addr.s_addr = strtol(value, NULL, 16)))
+			if((addr.s_addr = strtol(value, NULL, 16))){
+				cl->camera_ip = addr.s_addr;
 				strcpy(cl->camera_ip_str, inet_ntoa(addr));
+			}
 
 		}else if(!strcmp(name, "Type")){
 			if(!strcmp(value, "Alarm") && !r)

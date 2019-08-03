@@ -31,8 +31,8 @@ void process_stream(st_client *cl){
 
 	//seek streams
 	for(stream=g.streams; stream; stream=stream->next)
-		if(stream->ip == cl->ip){
-			_LOG_DBG("found stream, updating");
+		if(stream->ip == cl->camera_ip){
+			_LOG_DBG("found stream for %s, updating", cl->camera_ip_str);
 			stream->updated = time(NULL);
 			break;
 		}
@@ -41,7 +41,7 @@ void process_stream(st_client *cl){
 	if(!stream){
 		if((stream=malloc(sizeof(st_stream)))){
 			memset(stream, 0, sizeof(st_stream));
-			stream->ip = cl->ip;
+			stream->ip = cl->camera_ip;
 			strcpy(stream->ip_str, cl->camera_ip_str);
 			stream->updated = time(NULL);
 
