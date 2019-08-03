@@ -19,6 +19,7 @@
 #include "log.h"
 #include "structs.h"
 #include "streams.h"
+#include "jsmn.h"
 
 extern st_g g;
 
@@ -93,6 +94,9 @@ void free_client(st_client **client){
 		if((*client)->pk_data)
 			free((*client)->pk_data);
 
+		if((*client)->alert_data.json)
+			free((*client)->alert_data.json);
+
 		free(*client);
 		*client = NULL;
 	}
@@ -143,9 +147,11 @@ void *client_thread(void* av){
 		cl->alert_header.data_size, (char*)cl->pk_data);
 
 	//TODO: json parser
+	if(!client_alert_data(cl)){
 //	if(strstr((char*)cl->pk_data, "\"Event\" : \"MotionDetect\""))
 	if(strstr((char*)cl->pk_data, "\"Type\" : \"Alarm\""))
 		process_stream(cl);
+	}
 
 	client_dbsync(cl);
 
@@ -184,4 +190,50 @@ int client_dbsync(st_client *cl){
 		free(raw);
 
 	return ret ? -1 : 0;
+}
+
+int client_alert_data(st_client *cl){
+	int i, cnt;
+	char *name, *value;
+	jsmn_parser p;
+	jsmntok_t t[JSON_ALERT_MAX_TOKENS];
+
+	s_free(&cl->alert_data.json);
+	memset(&cl->alert_data, 0, sizeof(st_alert_data));
+	if(!(cl->alert_data.json = strdup(cl->pk_data))){
+		_LOG_ERR(CL_LOG_STR"strdup: %u bytes | %m", CL_LOG(cl), cl->alert_header.data_size);
+		return -1;
+	}
+
+	jsmn_init(&p);
+	if((cnt=jsmn_parse(&p, cl->alert_data.json, strlen(cl->alert_data.json), t, JSON_ALERT_MAX_TOKENS)) <= 0 || t[0].type != JSMN_OBJECT || !t[0].size){
+		_LOG_ERR(CL_LOG_STR"jsmn_parse: %s", CL_LOG(cl), cl->alert_data.json);
+		return -1;
+	}
+
+	for(i = 1; i < cnt; i++){
+		if(t[i].type != JSMN_STRING || t[i].size != 1 || t[i+1].size)
+			continue;
+
+		name = cl->alert_data.json + t[i].start;
+		value = cl->alert_data.json + t[i+1].start;
+		cl->alert_data.json[t[i].end] = cl->alert_data.json[t[i+1].end] = '\0';
+
+		_LOG_DBG(CL_LOG_STR"json: %s = %s", CL_LOG(cl), name, value);
+
+		if(!strcmp(name, "Address"))
+			cl->alert_data.address = value;
+		else if(!strcmp(name, "SerialID"))
+			cl->alert_data.serial = value;
+		else if(!strcmp(name, "Status"))
+			cl->alert_data.status = value;
+		else if(!strcmp(name, "Event"))
+			cl->alert_data.event = value;
+		else if(!strcmp(name, "Type"))
+			cl->alert_data.type = value;
+
+		i++;
+	}
+
+	return 0;
 }

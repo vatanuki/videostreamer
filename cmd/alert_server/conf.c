@@ -114,7 +114,6 @@ int conf_init_nvr(const char *fname){
 
 		{"pk_read_tout",					&g.conf.pk_read_tout,					DEF_PK_READ_TOUT},
 		{"pk_write_tout",					&g.conf.pk_write_tout,					DEF_PK_WRITE_TOUT},
-		{"pk_max_data_size",				&g.conf.pk_max_data_size,				DEF_PK_MAX_DATA_SIZE},
 
 		{"max_clients",						&g.conf.max_clients,					DEF_MAX_CLIENTS},
 		{"max_clients_per_ip",				&g.conf.max_clients_per_ip,				DEF_MAX_CLIENTS_PER_IP},

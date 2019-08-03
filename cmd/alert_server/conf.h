@@ -38,7 +38,6 @@ typedef struct _st_conf{
 
 	int pk_read_tout;
 	int pk_write_tout;
-	int pk_max_data_size;
 
 } st_conf, *pst_conf;
 

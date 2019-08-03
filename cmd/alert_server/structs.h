@@ -18,6 +18,16 @@ typedef struct _st_alert_header_20{
 } st_alert_header, *pst_alert_header;
 #pragma pack(pop)
 
+//alert
+typedef struct _st_alert_data{
+	char *json;
+	const char *address;
+	const char *serial;
+	const char *status;
+	const char *event;
+	const char *type;
+} st_alert_data, *pst_alert_data;
+
 //cl
 typedef struct _st_client{
 	pthread_t thread_id;
@@ -30,6 +40,7 @@ typedef struct _st_client{
 
 	//protocol
 	st_alert_header alert_header;
+	st_alert_data alert_data;
 	void *pk_data;
 
 	void *prev;
