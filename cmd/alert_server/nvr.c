@@ -91,6 +91,7 @@ int main(int ac, char **av){
 		return -1;
 	}
 
+	setbuf(stdout, NULL);
 	memset(&g, 0, sizeof(g));
 	openlog(NULL, LOG_PID, LOG_USER);
 

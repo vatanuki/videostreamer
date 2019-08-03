@@ -140,9 +140,13 @@ void *client_thread(void* av){
 	((char*)cl->pk_data)[cl->alert_header.data_size] = 0;
 	trim_end((char*)cl->pk_data);
 
-	_LOG_INF(CL_LOG_STR"alert: (0x%08x 0x%08x 0x%08x 0x%08x): (%u) %s", CL_LOG(cl),
+#ifdef _LOG_DEBUG
+	_LOG_DBG(CL_LOG_STR"alert: (0x%08x 0x%08x 0x%08x 0x%08x): (%u) %s", CL_LOG(cl),
 		cl->alert_header.ui1, cl->alert_header.ui2, cl->alert_header.ui3, cl->alert_header.ui4,
 		cl->alert_header.data_size, (char*)cl->pk_data);
+#else
+	_LOG_INF(CL_LOG_STR"alert: %s", CL_LOG(cl), (char*)cl->pk_data);
+#endif
 
 	//1: Type=Alarm, 2: Event=MotionDetect
 	if(client_alert_data(cl) == 2)
