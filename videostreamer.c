@@ -25,8 +25,10 @@ vs_setup(void)
 {
 	// Set up library.
 
+#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(58, 9, 100)
 	// Register muxers, demuxers, and protocols.
 	av_register_all();
+#endif
 
 	// Make formats available.
 	avdevice_register_all();

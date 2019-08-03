@@ -43,7 +43,7 @@
 
 #else
 
-#if 1
+#ifdef LOG_TO_SYSLOG
 	//syslog user
 	#define _LOG_ERR(b,args...) syslog(LOG_ERR,"[-] %s:%d: "b,__FUNCTION__,__LINE__,##args);
 	#define _LOG_WRN(b,args...) syslog(LOG_WARNING,"[W] %s:%d: "b,__FUNCTION__,__LINE__,##args);
