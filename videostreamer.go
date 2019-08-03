@@ -111,7 +111,7 @@ func getArgs() (Args, error) {
 	format := flag.String("format", "pulse", "Input format. Example: rtsp for RTSP.")
 	input := flag.String("input", "", "Input URL valid for the given format. For RTSP you can provide a rtsp:// URL.")
 	verbose := flag.Bool("verbose", false, "Enable verbose logging output.")
-	fcgi := flag.Bool("fcgi", true, "Serve using FastCGI (true) or as a regular HTTP server.")
+	fcgi := flag.Bool("fcgi", false, "Serve using FastCGI or as a regular HTTP server.")
 
 	flag.Parse()
 
