@@ -12,6 +12,7 @@
 
 #define FL_DAEMON					0x01
 #define FL_CONFIG					0x02
+#define FL_NODB						0x04
 
 #define DEF_THREAD_STACKSIZE		(128U * 1024)
 

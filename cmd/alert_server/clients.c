@@ -155,7 +155,8 @@ void *client_thread(void* av){
 	if(client_alert_data(cl) == 2)
 		process_stream(cl);
 
-	client_dbsync(cl);
+	if(g.db.mysql)
+		client_dbsync(cl);
 
 cl_bye:
 	s_close(&cl->sd);

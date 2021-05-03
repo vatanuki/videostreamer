@@ -30,7 +30,7 @@ void die(int nsig){
 }
 
 static void usage(char *self){
-	fprintf(stderr, "Usage: %s -c config [-d daemon]\n", self);
+	fprintf(stderr, "Usage: %s -c config [-d daemon] [-n nodb]\n", self);
 	exit(-1);
 }
 
@@ -95,7 +95,7 @@ int main(int ac, char **av){
 	memset(&g, 0, sizeof(g));
 	openlog(NULL, LOG_PID, LOG_USER);
 
-	while((ch=getopt(ac, av, "c:d")) != EOF) switch(ch){
+	while((ch=getopt(ac, av, "c:dn")) != EOF) switch(ch){
 		case 'c':
 			if(conf_init_nvr(optarg)){
 				fprintf(stderr, "error conf_init\n");
@@ -105,6 +105,9 @@ int main(int ac, char **av){
 			break;
 		case 'd':
 			fl_start|= FL_DAEMON;
+			break;
+		case 'n':
+			fl_start|= FL_NODB;
 			break;
 	}
 
@@ -183,16 +186,18 @@ int main(int ac, char **av){
 		return -1;
 	}
 
-	//init db - clients threads
-	init_db(1);
+	//init db
+	if(!(fl_start & FL_NODB)){
+		init_db(1);
 
-	g.db.query = "SET NAMES 'utf8'";
-	g.db.query_type = DB_MYSQL_QTYPE_OTHER;
-	db_mysql_query(&g.db);
+		g.db.query = "SET NAMES 'utf8'";
+		g.db.query_type = DB_MYSQL_QTYPE_OTHER;
+		db_mysql_query(&g.db);
 
-	g.db.query = "SET SESSION time_zone='Europe/Kiev'";
-	g.db.query_type = DB_MYSQL_QTYPE_OTHER;
-	db_mysql_query(&g.db);
+		g.db.query = "SET SESSION time_zone='Europe/Kiev'";
+		g.db.query_type = DB_MYSQL_QTYPE_OTHER;
+		db_mysql_query(&g.db);
+	}
 
 	vs_setup();
 
